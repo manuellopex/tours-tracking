@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+  <html lang="es">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Despacho Rutas en Vivo</title>
+  <style>
+  *{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9}
+#map{width:100%;height:100vh}
+#panel{position:fixed;top:0;left:0;bottom:0;width:280px;background:#1e293bdd;backdrop-filter:blur(8px);padding:1rem;overflow-y:auto;z-index:10;border-right:1px solid #334155}
+h2{font-size:1rem;font-weight:700;margin-bottom:1rem;color:#22c55e}
+.trip{margin-bottom:1rem;padding:.75rem;background:#0f172a;border-radius:.5rem;border:1px solid #334155}
+.trip-name{font-weight:600;font-size:.9rem}
+.trip-coords{font-size:.75rem;color:#64748b;margin-top:.25rem}
+.stop{font-size:.75rem;padding:.3rem .5rem;margin-top:.3rem;background:#1e293b;border-radius:.3rem}
+.stop.done{text-decoration:line-through;opacity:.5}
+</style>
+  </head>
+  <body>
+  <div id="panel"><h2>Despacho en Vivo</h2><div id="trips">Cargando viajes...</div></div>
+<div id="map"></div>
+<script>
+const SUPABASE_URL="https://cnnzrdgwxifsyftaqlrz.supabase.co";
+const SUPABASE_ANON="REPLACE_ANON_KEY";
+const MAPS_KEY="REPLACE_MAPS_KEY";
+const DEST={lat:18.4655,lng:-66.1057}; // Puerto de San Juan - actualizar
+let map,markers={},polylines={};
+window.initMap=function(){
+  map=new google.maps.Map(document.getElementById("map"),{
+        center:DEST,zoom:11,
+        styles:[{elementType:"geometry",stylers:[{color:"#1d2c4d"}]},{elementType:"labels.text.fill",stylers:[{color:"#8ec3b9"}]},{featureType:"road",elementType:"geometry",stylers:[{color:"#304a7d"}]}]
+    });
+  new google.maps.Marker({position:DEST,map,title:"Muelle",icon:{url:"http://maps.google.com/mapfiles/ms/icons/red-dot.png"}});
+  loadTrips();
+  setInterval(updateAllVans,4000);
+          };
+async function loadTrips(){
+  const r=await fetch(SUPABASE_URL+"/rest/v1/trips?active=eq.true&order=started_at.desc",{headers:{"apikey":SUPABASE_ANON,"Authorization":"Bearer "+SUPABASE_ANON}});
+  const trips=await r.json();
+  const el=document.getElementById("trips");
+  el.innerHTML="";
+  for(const t of trips){
+        const stops=await fetchStops(t.id);
+    const div=document.createElement("div");
+    div.className="trip";div.id="trip-"+t.id;
+    div.innerHTML="<div class='trip-name'>" +t.driver_name+"</div><div class='trip-coords' id='c-"+t.id+"'>Sin ubicacion</div>"+stops.map(s=>"<div class='stop"+(s.picked?" done":"")+"'>"+(s.picked?"":"")+s.seq+". "+s.label+"</div>").join("");
+    el.appendChild(div);
+}
+  updateAllVans();
+}
+async function fetchStops(tripId){
+    const r=await fetch(SUPABASE_URL+"/rest/v1/stops?trip_id=eq."+tripId+"&order=seq",{headers:{"apikey":SUPABASE_ANON,"Authorization":"Bearer "+SUPABASE_ANON}});
+  return r.json();
+}
+async function updateAllVans(){
+  const r=await fetch(SUPABASE_URL+"/rest/v1/trips?active=eq.true",{headers:{"apikey":SUPABASE_ANON,"Authorization":"Bearer "+SUPABASE_ANON}});
+  const trips=await r.json();
+  for(const t of trips){
+        const r2=await fetch(SUPABASE_URL+"/rest/v1/live_locations?trip_id=eq."+t.id+"&order=ts.desc&limit=1",{headers:{"apikey":SUPABASE_ANON,"Authorization":"Bearer "+SUPABASE_ANON}});
+    const [loc]=await r2.json();
+    if(!loc)continue;
+    const pos={lat:loc.lat,lng:loc.lng};
+    document.getElementById("c-"+t.id).textContent=loc.lat.toFixed(4)+", "+loc.lng.toFixed(4);
+    if(!markers[t.id]){
+      markers[t.id]=new google.maps.Marker({position:pos,map,title:t.driver_name,label:{text:t.driver_name.charAt(0),color:"#fff"},icon:{path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,scale:7,fillColor:"#22c55e",fillOpacity:1,strokeColor:"#fff",strokeWeight:1}});
+}else{markers[t.id].setPosition(pos)}
+}
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key="+MAPS_KEY+"&callback=initMap"></script>
+</body>
+</html>
