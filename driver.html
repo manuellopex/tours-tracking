@@ -3,7 +3,7 @@
   <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Driver · Tours PR</title>
+  <title>Driver Â· Tours PR</title>
   <style>
   *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}
@@ -28,7 +28,7 @@ h1{font-size:1.4rem;margin-bottom:1rem;text-align:center}
 <button id="btnStop">Detener</button>
   <script>
   const SUPABASE_URL="https://cnnzrdgwxifsyftaqlrz.supabase.co";
-const SUPABASE_ANON="REPLACE_ANON_KEY";
+const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNubnpyZGd3eGlmc3lmdGFxbHJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNjYwMTAsImV4cCI6MjA5NTc0MjAxMH0.6QDpjiLVrbHx4pCL6nrz6K_64NzO7zY2p0RGFCzc1Vw";
 const p=new URLSearchParams(location.search);
 const tripId=p.get("trip"),token=p.get("token"),name=p.get("name")||"Chofer";
 document.getElementById("title").textContent=name;
