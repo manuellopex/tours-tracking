@@ -68,6 +68,8 @@ async function updateAllVans(){
 }
 }
 </script>
-<script async defer src="https://maps.googleapis.com/maps/api/js?key="+MAPS_KEY+"&callback=initMap"></script>
+<script>
+(function(){var s=document.createElement('script');s.src='https://maps.googleapis.com/maps/api/js?key='+MAPS_KEY+'&callback=initMap';s.async=true;s.defer=true;document.head.appendChild(s);})();
+</script>
 </body>
 </html>
