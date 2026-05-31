@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+  <html lang="es">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Driver · Tours PR</title>
+  <style>
+  *{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}
+h1{font-size:1.4rem;margin-bottom:1rem;text-align:center}
+#status{font-size:.9rem;color:#94a3b8;margin:.5rem 0;text-align:center}
+  #coords{font-size:.75rem;color:#64748b;margin-bottom:1rem;text-align:center}
+  button{padding:.85rem 2rem;border:none;border-radius:.75rem;font-size:1rem;font-weight:600;cursor:pointer;width:100%;max-width:300px;display:block;margin:.4rem auto}
+#btnStart{background:#22c55e;color:#fff}
+#btnStart:disabled{background:#374151;color:#6b7280;cursor:not-allowed}
+#btnStop{background:#ef4444;color:#fff;display:none}
+.badge{display:inline-block;padding:.2rem .75rem;border-radius:9999px;font-size:.75rem;font-weight:700;margin-bottom:1rem}
+.live{background:#22c55e22;color:#22c55e;border:1px solid #22c55e55}
+.stopped{background:#ef444422;color:#ef4444;border:1px solid #ef444455}
+</style>
+  </head>
+  <body>
+  <h1 id="title">Driver Panel</h1>
+  <span id="badge" class="badge stopped">Detenido</span>
+  <div id="status">Listo para iniciar</div>
+<div id="coords"></div>
+<button id="btnStart">Iniciar GPS</button>
+<button id="btnStop">Detener</button>
+  <script>
+  const SUPABASE_URL="https://cnnzrdgwxifsyftaqlrz.supabase.co";
+const SUPABASE_ANON="REPLACE_ANON_KEY";
+const p=new URLSearchParams(location.search);
+const tripId=p.get("trip"),token=p.get("token"),name=p.get("name")||"Chofer";
+document.getElementById("title").textContent=name;
+let watchId=null,lastSend=0;
+const btnStart=document.getElementById("btnStart");
+const btnStop=document.getElementById("btnStop");
+const statusEl=document.getElementById("status");
+const coordsEl=document.getElementById("coords");
+const badge=document.getElementById("badge");
+if(!tripId||!token){statusEl.textContent="Falta trip o token en URL";btnStart.disabled=true}
+async function send(lat,lng,heading,speed){
+  const now=Date.now();if(now-lastSend<4000)return;lastSend=now;
+  try{await fetch(SUPABASE_URL+"/rest/v1/live_locations",{method:"POST",headers:{"apikey":SUPABASE_ANON,"Authorization":"Bearer "+SUPABASE_ANON,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({trip_id:tripId,lat,lng,heading,speed})})}
+  catch(e){statusEl.textContent="Error: "+e.message}
+        }
+btnStart.addEventListener("click",()=>{
+    if(!navigator.geolocation){statusEl.textContent="GPS no disponible";return}
+  btnStart.style.display="none";btnStop.style.display="block";
+  badge.className="badge live";badge.textContent="EN VIVO";
+  statusEl.textContent="Obteniendo ubicacion...";
+  watchId=navigator.geolocation.watchPosition(
+        pos=>{const{latitude:lat,longitude:lng,heading,speed}=pos.coords;coordsEl.textContent=lat.toFixed(5)+", "+lng.toFixed(5);statusEl.textContent="Transmitiendo...";send(lat,lng,heading,speed)},
+        err=>{statusEl.textContent="GPS: "+err.message},
+    {enableHighAccuracy:true,maximumAge:2000,timeout:10000}
+  )
+});
+btnStop.addEventListener("click",()=>{
+    if(watchId!==null)navigator.geolocation.clearWatch(watchId);
+  watchId=null;btnStop.style.display="none";btnStart.style.display="block";
+  badge.className="badge stopped";badge.textContent="Detenido";
+  statusEl.textContent="GPS detenido";coordsEl.textContent=""
+    });
+</script>
+  </body>
+  </html>
