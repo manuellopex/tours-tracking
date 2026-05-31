@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Tracking tu Tour</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9}
+    #map{width:100%;height:100vh}
+    #panel{position:fixed;bottom:0;left:0;right:0;background:#1e293bdd;backdrop-filter:blur(8px);padding:1rem;border-top:1px solid #334155;z-index:10}
+    .eta{font-size:1.4rem;font-weight:800;color:#22c55e}
+    .sub{font-size:.8rem;color:#94a3b8;margin-top:.25rem}
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>div>
+    <div id="panel">
+      <div class="eta" id="eta">Calculando ETA...</div>div>
+      <div class="sub" id="sub">Conectando...</div>div>
+    </div>div>
+    <script>
+      const SUPABASE_URL="https://cnnzrdgwxifsyftaqlrz.supabase.co";
+      const SUPABASE_ANON="REPLACE_ANON_KEY";
+      const MAPS_KEY="REPLACE_MAPS_KEY";
+      const p=new URLSearchParams(location.search);
+      const tripId=p.get("trip"),stopStr=p.get("stop");
+      const[destLat,destLng]=stopStr?stopStr.split(",").map(Number):[18.4655,-66.1057];
+      let map,vanMarker,dr,lastLat,lastLng;
+      window.initMap=function(){
+        map=new google.maps.Map(document.getElementById("map"),{center:{lat:destLat,lng:destLng},zoom:13,styles:[{elementType:"geometry",stylers:[{color:"#1d2c4d"}]},{featureType:"road",elementType:"geometry",stylers:[{color:"#304a7d"}]}]});
+        new google.maps.Marker({position:{lat:destLat,lng:destLng},map,icon:{url:"https://maps.google.com/mapfiles/ms/icons/blue-dot.png"}});
+        dr=new google.maps.DirectionsRenderer({map,suppressMarkers:true,polylineOptions:{strokeColor:"#22c55e",strokeWeight:4}});
+        if(tripId){setInterval(poll,4000);poll()}else document.getElementById("sub").textContent="Falta trip en URL"
+      };
+      async function poll(){
+        try{
+          const r=await fetch(SUPABASE_URL+"/rest/v1/live_locations?trip_id=eq."+tripId+"&order=ts.desc&limit=1",{headers:{"apikey":SUPABASE_ANON,"Authorization":"Bearer "+SUPABASE_ANON}});
+          const[l]=await r.json();if(!l||l.lat===lastLat)return;
+          lastLat=l.lat;lastLng=l.lng;
+          const pos={lat:l.lat,lng:l.lng};
+          if(!vanMarker){vanMarker=new google.maps.Marker({position:pos,map,icon:{path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,scale:6,fillColor:"#22c55e",fillOpacity:1,strokeColor:"#fff",strokeWeight:1}})}
+          else vanMarker.setPosition(pos);
+          map.panTo(pos);
+          new google.maps.DirectionsService().route({origin:pos,destination:{lat:destLat,lng:destLng},travelMode:"DRIVING"},function(res,st){
+            if(st==="OK"){dr.setDirections(res);const leg=res.routes[0].legs[0];document.getElementById("eta").textContent=leg.duration.text;document.getElementById("sub").textContent="Distancia: "+leg.distance.text}
+          });
+        }catch(e){console.error(e)}
+      }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key="+MAPS_KEY+"&callback=initMap"></script>
+  </body>
+</html>html>
+    </script>
+  </body>
+  </style></title>
+  </head>
